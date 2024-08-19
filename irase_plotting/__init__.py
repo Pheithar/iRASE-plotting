@@ -1,3 +1,3 @@
-from . import sensor, signal
+from . import sensor, signal, position
 
-__all__ = ["sensor", "signal"]
+__all__ = ["sensor", "signal", "position"]

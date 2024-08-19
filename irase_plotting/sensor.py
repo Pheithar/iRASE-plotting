@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 import matplotlib.patches as patches
 from mpl_toolkits.mplot3d import art3d
 import numpy as np
@@ -439,6 +440,259 @@ def show_points(
 
     if show:
         plt.show()
+    plt.close()
+
+
+def histogram(
+    points: np.ndarray,
+    detector_size: np.ndarray,
+    num_drifts: int = -1,
+    num_anodes: int = -1,
+    num_cathodes: int = -1,
+    bins: int | tuple[int, int, int] = 10,
+    view: str = "xy",
+    save_path: str = None,
+    show: bool = True,
+) -> None:
+    """Show a histogram of the points in the sensor. The shape of the points is expected to be (num_points, 3), and it must be ordered in x, y, z.
+
+    ..warning::
+        For now, as it is very difficult to see anything, the 3D view is not implemented.
+
+    Args:
+        points (np.ndarray): The points to display in the sensor.
+        detector_size (np.ndarray): The size of the detector in mm.
+        num_drifts (int, optional): Number of drift strips. Defaults to -1.
+        num_anodes (int, optional): Number of anodes. Defaults to -1.
+        num_cathodes (int, optional): Number of cathodes. Defaults to -1.
+        bins (int | tuple[int, int, int], optional): The number of bins or a tuple with the number of bins for each axis. Defaults to 10.
+        view (str, optional): The view of the sensor. It can be either "xy", "yz", "xz" or "all". Defaults to "xy".
+        save_path (str, optional): The path to save the figure. If None, the figure will not be saved. Defaults to
+        show (bool, optional): Whether to show the figure or not. Defaults to True.
+
+    Raises:
+        ValueError: If the view is not valid.
+        ValueError: If the view requires the number of drifts, anodes, and cathodes to be specified.
+    """
+    display_detector(detector_size, num_drifts, num_anodes, num_cathodes, view=view)
+    if isinstance(bins, int):
+        bins = (bins, bins, bins)
+
+    if view == "all":
+        if num_drifts == -1 or num_anodes == -1 or num_cathodes == -1:
+            raise ValueError(
+                f"The view {view} requires the number of drifts, anodes, and cathodes to be specified."
+            )
+
+        axes = plt.gcf().axes
+
+        ax1 = axes[0]
+        ax2 = axes[1]
+        ax3 = axes[2]
+
+        ax1.hist2d(
+            points[:, 0],
+            points[:, 2],
+            bins=(bins[0], bins[2]),
+            range=((0, detector_size[0]), (0, detector_size[2])),
+            alpha=0.5,
+            cmap="hot",
+        )
+
+        ax2.hist2d(
+            points[:, 1],
+            points[:, 2],
+            bins=(bins[1], bins[2]),
+            range=((0, detector_size[1]), (0, detector_size[2])),
+            alpha=0.5,
+            cmap="hot",
+        )
+
+        ax3.hist2d(
+            points[:, 0],
+            points[:, 1],
+            bins=(bins[0], bins[1]),
+            range=((0, detector_size[0]), (0, detector_size[1])),
+            alpha=0.5,
+            cmap="hot",
+        )
+
+        # Put again the detector limits in the plot (hist2d changes them)
+        ax1.set_xlim(-PLOT_MARGIN, detector_size[0] + PLOT_MARGIN)
+        ax1.set_ylim(-PLOT_MARGIN, detector_size[2] + PLOT_MARGIN)
+        ax2.set_xlim(-PLOT_MARGIN, detector_size[1] + PLOT_MARGIN)
+        ax2.set_ylim(-PLOT_MARGIN, detector_size[2] + PLOT_MARGIN)
+        ax3.set_xlim(-PLOT_MARGIN, detector_size[0] + PLOT_MARGIN)
+        ax3.set_ylim(-PLOT_MARGIN, detector_size[1] + PLOT_MARGIN)
+
+        plt.gcf().suptitle("Histogram of Points in the Sensor")
+
+    elif view == "xy":
+        if num_drifts == -1 or num_anodes == -1:
+            raise ValueError(
+                f"The view {view} requires the number of drifts and anodes to be specified."
+            )
+        ax = plt.gca()
+
+        ax.hist2d(
+            points[:, 0],
+            points[:, 1],
+            range=((0, detector_size[0]), (0, detector_size[1])),
+            bins=(bins[0], bins[1]),
+            cmap="hot",
+        )
+
+        # Put again the detector limits in the plot (hist2d changes them)
+        ax.set_xlim(-PLOT_MARGIN, detector_size[0] + PLOT_MARGIN)
+        ax.set_ylim(-PLOT_MARGIN, detector_size[1] + PLOT_MARGIN)
+
+        plt.title("Histogram of Points in the Sensor")
+
+    elif view == "xz":
+        if num_drifts == -1 or num_anodes == -1 or num_cathodes == -1:
+            raise ValueError(
+                f"The view {view} requires the number of drifts, anodes, and cathodes to be specified."
+            )
+        ax = plt.gca()
+
+        ax.hist2d(
+            points[:, 0],
+            points[:, 2],
+            range=((0, detector_size[0]), (0, detector_size[2])),
+            bins=(bins[0], bins[2]),
+            cmap="hot",
+        )
+
+        # Put again the detector limits in the plot (hist2d changes them)
+        ax.set_xlim(-PLOT_MARGIN, detector_size[0] + PLOT_MARGIN)
+        ax.set_ylim(-PLOT_MARGIN, detector_size[2] + PLOT_MARGIN)
+
+        plt.title("Histogram of Points in the Sensor")
+
+    elif view == "yz":
+        if num_cathodes == -1:
+            raise ValueError(
+                f"The view {view} requires the number of cathodes to be specified."
+            )
+        ax = plt.gca()
+
+        ax.hist2d(
+            points[:, 1],
+            points[:, 2],
+            range=((0, detector_size[1]), (0, detector_size[2])),
+            bins=(bins[1], bins[2]),
+            cmap="hot",
+        )
+
+        # Put again the detector limits in the plot (hist2d changes them)
+        ax.set_xlim(-PLOT_MARGIN, detector_size[1] + PLOT_MARGIN)
+        ax.set_ylim(-PLOT_MARGIN, detector_size[2] + PLOT_MARGIN)
+
+        plt.title("Histogram of Points in the Sensor")
+
+    else:
+        raise ValueError(
+            f"View {view} is not a valid view. Expected 'xy', 'yz', 'xz', 'all' or '3d'."
+        )
+
+    if save_path is not None:
+        plt.savefig(save_path, bbox_inches="tight", dpi=500)
+
+    if show:
+        plt.show()
+
+    plt.close()
+
+
+def error_histogram(
+    output_points: np.ndarray,
+    target_points: np.ndarray,
+    detector_size: np.ndarray,
+    num_drifts: int = -1,
+    num_anodes: int = -1,
+    num_cathodes: int = -1,
+    bins: int | tuple[int, int, int] = 10,
+    view: str = "xy",
+    save_path: str = None,
+    show: bool = True,
+) -> None:
+    """Show the errors as a histogram in the sensor. The shape of the points is expected to be (num_points, 3), and it must be ordered in x, y, z.
+
+    Args:
+        output_points (np.ndarray): The output points to compare with the target.
+        target_points (np.ndarray): The target points to compare with the output.
+        detector_size (np.ndarray): The size of the detector in mm.
+        num_drifts (int, optional): Number of drift strips. Defaults to -1.
+        num_anodes (int, optional): Number of anodes. Defaults to -1.
+        num_cathodes (int, optional): Number of cathodes. Defaults to -1.
+        bins (int | tuple[int, int, int], optional): The number of bins or a tuple with the number of bins for each axis. Defaults to 10.
+        view (str, optional): The view of the sensor. It can be either "xy", "yz", "xz" or "all". Defaults to "xy".
+        save_path (str, optional): The path to save the figure. If None, the figure will not be saved. Defaults to
+        show (bool, optional): Whether to show the figure or not. Defaults to True.
+    """
+
+    display_detector(detector_size, num_drifts, num_anodes, num_cathodes, view=view)
+    if isinstance(bins, int):
+        bins = (bins, bins, bins)
+
+    errors = np.linalg.norm(output_points - target_points, axis=1)
+
+    # Create the histogram manually, as we need to plot the error in the sensor
+    error_grid = np.zeros(bins)
+    counts_grid = np.zeros(bins)
+
+    x_bins = np.linspace(0, detector_size[0], bins[0] + 1)
+    y_bins = np.linspace(0, detector_size[1], bins[1] + 1)
+    z_bins = np.linspace(0, detector_size[2], bins[2] + 1)
+
+    for i, target in enumerate(target_points):
+        x = np.digitize(target[0], x_bins) - 1
+        y = np.digitize(target[1], y_bins) - 1
+        z = np.digitize(target[2], z_bins) - 1
+
+        error_grid[x, y, z] += errors[i]
+        counts_grid[x, y, z] += 1
+
+    error_grid = np.divide(
+        error_grid, counts_grid, out=np.zeros_like(error_grid), where=counts_grid != 0
+    )
+
+    if view == "all":
+        if num_drifts == -1 or num_anodes == -1 or num_cathodes == -1:
+            raise ValueError(
+                f"The view {view} requires the number of drifts, anodes, and cathodes to be specified."
+            )
+
+        axes = plt.gcf().axes
+
+        ax1 = axes[0]
+        ax2 = axes[1]
+        ax3 = axes[2]
+
+        ax1.imshow(
+            error_grid.sum(axis=1).T,
+            extent=(0, detector_size[0], 0, detector_size[2]),
+            origin="lower",
+            cmap="hot",
+            alpha=np.where(counts_grid.sum(axis=1).T == 0, 0, 0.75),
+        )
+
+        # Put again the detector limits in the plot (hist2d changes them)
+        ax1.set_xlim(-PLOT_MARGIN, detector_size[0] + PLOT_MARGIN)
+        ax1.set_ylim(-PLOT_MARGIN, detector_size[2] + PLOT_MARGIN)
+        ax2.set_xlim(-PLOT_MARGIN, detector_size[1] + PLOT_MARGIN)
+        ax2.set_ylim(-PLOT_MARGIN, detector_size[2] + PLOT_MARGIN)
+        ax3.set_xlim(-PLOT_MARGIN, detector_size[0] + PLOT_MARGIN)
+        ax3.set_ylim(-PLOT_MARGIN, detector_size[1] + PLOT_MARGIN)
+
+        plt.gcf().suptitle("Histogram of Errors in the Sensor")
+
+    if save_path is not None:
+        plt.savefig(save_path, bbox_inches="tight", dpi=500)
+
+    if show:
+        plt.show()
+
     plt.close()
 
 

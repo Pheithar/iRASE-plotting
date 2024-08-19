@@ -102,7 +102,7 @@ def show_signal(
             label=f"Anode {i+1}",
         )
 
-    for i, cathode in enumerate(cathode_signal.T)
+    for i, cathode in enumerate(cathode_signal.T):
         ax2.plot(
             np.arange(cathode.shape[0]) * sample_time / 1e-9,
             cathode,
